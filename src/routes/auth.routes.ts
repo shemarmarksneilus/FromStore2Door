@@ -5,8 +5,8 @@ import { verifyFirebaseToken } from '../middleware/auth';
 const router = Router();
 const authService = new AuthService();
 
-// Use the same interface as your middleware
-router.post('/sync', verifyFirebaseToken, async (req, res) => {
+// Use type assertion
+router.post('/sync', verifyFirebaseToken, async (req: any, res) => {
   try {
     const firebaseUser = req.user;
     if (!firebaseUser) {

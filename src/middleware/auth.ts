@@ -1,21 +1,17 @@
 import type { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import admin from '../config/firebase';
 
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        uid: string;
-        email: string;
-        role: string;
-      };
-    }
-  }
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    uid: string;
+    email: string;
+    role: string;
+  };
 }
 
 export const verifyFirebaseToken = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -28,7 +24,7 @@ export const verifyFirebaseToken = async (
 
     const decodedToken = await admin.auth().verifyIdToken(token);
     
-    // Check if user exists in database
+    // Check if user exists in our database
     const { pool } = await import('../config/database');
     const result = await pool.query(
       'SELECT * FROM accounts WHERE firebase_uid = $1',
@@ -49,4 +45,13 @@ export const verifyFirebaseToken = async (
   } catch (error) {
     res.status(401).json({ error: 'Invalid token' });
   }
+};
+
+export const requireRole = (roles: string[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    next();
+  };
 };

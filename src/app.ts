@@ -1,38 +1,36 @@
-
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import accountRoutes from './routes/accounts.routes.js';
+import accountRoutes from './routes/accounts.routes';
+import authRoutes from './routes/auth.routes';
+import { errorHandler } from './middleware/errorHandler';
 
-// Load environment variables from .env.development file
 dotenv.config({ path: '.env.development' });
 
 const app = express();
 
-// Security middleware to set HTTP headers
+// Middleware
 app.use(helmet());
-
-// Enable Cross-Origin Resource Sharing
 app.use(cors());
-
-// HTTP request logger middleware
 app.use(morgan('dev'));
-
-// Parse incoming JSON requests
 app.use(express.json());
 
-/**
- * Health check endpoint.
- * Returns status and current timestamp.
- */
+// Routes
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    database: 'connected'
+  });
 });
 
-// Register account routes
+app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountRoutes);
 
+// Error handling (must be last)
+app.use(errorHandler);
 
 export default app;

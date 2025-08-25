@@ -1,12 +1,7 @@
-import { pool } from '../config/database.js';
+import { pool } from '../config/database';
 import { v4 as uuidv4 } from 'uuid';
 
 export class AccountService {
-  /**
-   * Creates a new account in the database.
-   * @param data - Object containing email, fullName, and role.
-   * @returns The newly created account record.
-   */
   async createAccount(data: {
     email: string;
     fullName: string;
@@ -28,15 +23,18 @@ export class AccountService {
     return result.rows[0];
   }
 
-  /**
-   * Retrieves an account by its unique ID.
-   * @param id - The UUID of the account.
-   * @returns The account record if found, otherwise undefined.
-   */
   async getAccountById(id: string) {
     const result = await pool.query(
       'SELECT * FROM accounts WHERE id = $1',
       [id]
+    );
+    return result.rows[0];
+  }
+
+  async getAccountByFirebaseUid(uid: string) {
+    const result = await pool.query(
+      'SELECT * FROM accounts WHERE firebase_uid = $1',
+      [uid]
     );
     return result.rows[0];
   }

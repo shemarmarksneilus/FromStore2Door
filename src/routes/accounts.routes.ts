@@ -1,50 +1,42 @@
 import { Router } from 'express';
-import { AccountService } from '../services/account.service.js';
+import type { Request, Response } from 'express';
+import { AccountService } from '../services/account.service';
+import { verifyFirebaseToken, requireRole } from '../middleware/auth';
+import { validate } from '../middleware/validation';
+import { createAccountSchema } from '../utils/validation';
+
 
 const router = Router();
 const accountService = new AccountService();
 
-/**
- * GET /api/accounts/:id
- * Retrieves an account by its unique ID.
- * Responds with 404 if not found, or 500 on server error.
- */
-router.get('/:id', async (req, res) => {
+// All routes require authentication
+router.use(verifyFirebaseToken);
+
+// GET /api/accounts/me
+router.get('/me', async (req, res) => {
   try {
-    const account = await accountService.getAccountById(req.params.id);
-    if (!account) {
-      return res.status(404).json({ error: 'Account not found' });
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ error: 'Unauthorized: user not found' });
     }
+    const account = await accountService.getAccountByFirebaseUid(req.user.uid);
     res.json(account);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Failed to fetch account' });
   }
 });
 
-/**
- * POST /api/accounts
- * Creates a new account.
- * Requires 'email' and 'fullName' in the request body.
- * Responds with 400 if required fields are missing, or 500 on server error.
- */
-router.post('/', async (req, res) => {
-  try {
-    const { email, fullName, role } = req.body;
-    
-    if (!email || !fullName) {
-      return res.status(400).json({ error: 'Email and fullName required' });
+// POST /api/accounts (admin only)
+router.post('/', 
+  requireRole(['admin']), 
+  validate(createAccountSchema), 
+  async (req, res) => {
+    try {
+      const account = await accountService.createAccount(req.body);
+      res.status(201).json(account);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create account' });
     }
-    
-    const account = await accountService.createAccount({
-      email,
-      fullName,
-      role: role || 'customer'
-    });
-    
-    res.status(201).json(account);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create account' });
   }
-});
+);
 
 export default router;
