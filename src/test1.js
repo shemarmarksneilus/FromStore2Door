@@ -16,6 +16,19 @@ async function runTests() {
     console.log('\n2. Testing database connection...');
     const dbResponse = await axios.get(`${API_URL}/test-db`);
     console.log(' Database test:', dbResponse.data);
+
+    // Test 3: Register user
+    console.log('\n3. User Registration...');
+    const user = await axios.post(`${API_URL}/api/auth/register`, {
+      email: 'test123@example.com',
+      fullName: 'Test User'
+    });
+    console.log('Registered:', user.data.email);
+
+    // Test 4: List users
+    console.log('\n4. List Users...');
+    const users = await axios.get(`${API_URL}/api/auth/users`);
+    console.log('Found', users.data.length, 'users');
     
     console.log('\n All tests passed!');
     

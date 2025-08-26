@@ -28,6 +28,17 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Available endpoints:`);
+  console.log(`   GET  /health - Health check`);
+  console.log(`   GET  /test-db - Database test`);
+  console.log(`   POST /api/auth/register - Register user`);
+  console.log(`   GET  /api/auth/users - List users`);
+});
+
 app.use('/api/accounts', accountRoutes);
 
 // Error handling (must be last)
