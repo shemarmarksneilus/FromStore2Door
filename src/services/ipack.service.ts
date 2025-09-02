@@ -1,4 +1,5 @@
-
+import axios, { AxiosInstance } from 'axios';
+import {pool} from '../config/database';
 
 interface iPackConfig {
     apiUrl: string;
@@ -64,6 +65,46 @@ interface iPackTrackingEvent {
     location: string;
     status: string;
     description: string;
+}
+
+export class iPackIntegrationService {
+    private client: AxiosInstance;
+    private config: iPackConfig;
+    private lastTimestamp : Date | null = null;
+    
+
+    constructor(){
+        this.config = {
+            apiUrl: process.env.IPACK_API_URL || 'https://api.ipack.com',
+            apiKey: process.env.IPACK_API_KEY || '',
+            clientId: process.env.IPACK_CLIENT_ID || '',
+            environment: (process.env.IPACK_ENVIRONMENT as 'production' | 'staging' | 'sandbox') || 'sandbox'
+        };
+    
+
+    this.client = axios.create({
+        baseURL: this.config.apiUrl,
+        headers: {
+            'Authorization': `Bearer ${this.config.apiKey}`,
+            'Content-Type': 'application/json',
+            'Client-Id': this.config.clientId
+        },
+        timeout: 30000
+    });
+
+
+    this.client.interceptors.response.use(
+        (response) => response,
+        (error) => {
+            console.error('iPack API Error:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                url: error.config?.url,
+            });
+            throw error;
+            }
+        );
+    }
 }
 
 
