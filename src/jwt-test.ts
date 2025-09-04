@@ -1,6 +1,28 @@
-const axios = require('axios');
+import { any } from "joi";
 
+const axios = require('axios');
 const API_URL = 'http://localhost:3000';
+
+// Handle errors consistently
+function handleError(error: any , exit = false) {
+  if (error && typeof error === 'object') {
+    if (error.response && error.response.status) {
+      console.error('API Error:', error.response.status, error.response.data);
+    } else if (error.code === 'ECONNREFUSED') {
+      console.error('Server not running - start with: npm run dev');
+    } else if (error instanceof Error) {
+      console.error('Error:', error.message);
+    } else {
+      console.error('Unknown error:', error);
+    }
+  } else {
+    console.error('Unexpected error type:', error);
+  }
+
+  if (exit) {
+    process.exit(1);
+  }
+}
 
 async function testJWTAuth() {
   console.log('Testing JWT Authentication System\n');
@@ -29,10 +51,10 @@ async function testJWTAuth() {
       authToken = registerResponse.data.token;
       refreshToken = registerResponse.data.refreshToken;
     } catch (error) {
-      if (error.response?.status === 409) {
+      if (error  === 409) {
         console.log('User already exists, proceeding with login...');
       } else {
-        throw error;
+        handleError(error, true);
       }
     }
 
@@ -105,10 +127,10 @@ async function testJWTAuth() {
       });
       console.log('Should have failed - user has admin access when they shouldn\'t');
     } catch (error) {
-      if (error.response?.status === 403) {
+      if (error === 403) {
         console.log('Role-based access control working - access denied');
       } else {
-        throw error;
+        handleError(error, true);
       }
     }
 
@@ -143,7 +165,7 @@ async function testJWTAuth() {
     });
     console.log('Logout successful');
 
-    // Test 13: Test invalid token after logout
+    // Test 13: Test invalid refresh token after logout
     console.log('\n13. Testing invalid refresh token after logout...');
     try {
       await axios.post(`${API_URL}/api/auth/refresh`, {
@@ -151,24 +173,17 @@ async function testJWTAuth() {
       });
       console.log('Should have failed - refresh token should be invalid');
     } catch (error) {
-      if (error.response?.status === 401) {
+      if (error === 401) {
         console.log('Refresh token properly invalidated');
       } else {
-        throw error;
+        handleError(error, true);
       }
     }
 
-    console.log('\n🎉 All JWT authentication tests passed!');
+    console.log('\n All JWT authentication tests passed!');
 
   } catch (error) {
-    if (error.response) {
-      console.error('API Error:', error.response.status, error.response.data);
-    } else if (error.code === 'ECONNREFUSED') {
-      console.error('Server not running - start with: npm run dev');
-    } else {
-      console.error('Error:', error.message);
-    }
-    process.exit(1);
+    handleError(error, true);
   }
 }
 
@@ -176,7 +191,6 @@ async function testCompleteWorkflow() {
   console.log('\nTesting Complete Workflow\n');
 
   try {
-    // Register admin user for testing
     const adminData = {
       email: 'admin@example.com',
       password: 'adminpassword123',
@@ -191,25 +205,26 @@ async function testCompleteWorkflow() {
       adminToken = adminRegisterResponse.data.token;
       console.log('Admin user registered');
 
-      // Manually update role to admin (since registration defaults to customer)
       const { pool } = require('./src/config/database');
       await pool.query('UPDATE accounts SET role = $1 WHERE email = $2', ['admin', adminData.email]);
       console.log('Admin role assigned manually');
 
-      // Login again to get token with admin role
       const adminLoginResponse = await axios.post(`${API_URL}/api/auth/login`, {
         email: adminData.email,
         password: adminData.password
       });
       adminToken = adminLoginResponse.data.token;
+
     } catch (error) {
-      if (error.response?.status === 409) {
+      if (error  === 409) {
         const adminLoginResponse = await axios.post(`${API_URL}/api/auth/login`, {
           email: adminData.email,
           password: adminData.password
         });
         adminToken = adminLoginResponse.data.token;
         console.log('Admin login successful');
+      } else {
+        handleError(error, true);
       }
     }
 
@@ -227,10 +242,10 @@ async function testCompleteWorkflow() {
     const warehouseResponse = await axios.post(`${API_URL}/api/warehouses`, {
       name: 'Test Warehouse JWT',
       type: 'local',
-      address: { 
-        street: '123 Test St', 
-        city: 'Kingston', 
-        country: 'Jamaica' 
+      address: {
+        street: '123 Test St',
+        city: 'Kingston',
+        country: 'Jamaica'
       },
       timezone: 'America/Jamaica'
     });
@@ -248,10 +263,10 @@ async function testCompleteWorkflow() {
     });
     console.log('Package received:', packageResponse.data.tracking_no);
 
-    console.log('\nComplete workflow test passed!');
+    console.log('\n✅ Complete workflow test passed!');
 
   } catch (error) {
-    console.error('Workflow test failed:', error.response?.data || error.message);
+    handleError(error);
   }
 }
 
@@ -259,6 +274,8 @@ async function testCompleteWorkflow() {
 async function runAllTests() {
   await testJWTAuth();
   await testCompleteWorkflow();
+  console.log('\nAll tests completed successfully!');
+  process.exit(0);
 }
 
 runAllTests();
