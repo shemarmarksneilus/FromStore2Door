@@ -33,7 +33,7 @@ export class JwtAuthService {
         phone?:string;
         role?:string;
     }): Promise<LoginResponse> {
-        const {email, password, fullName, phone, role='user'} = userData;
+        const {email, password, fullName, phone, role='customer'} = userData;
 
         //check if user already exists
         const existingUser = await pool.query('SELECT id FROM accounts WHERE email=$1',
