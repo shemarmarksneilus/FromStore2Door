@@ -77,7 +77,7 @@ async function testJWTAuth() {
         'Authorization': `Bearer ${authToken}`
       }
     });
-    console.log('Current user:', meResponse.data.user.fullName);
+    console.log('Current user:', meResponse.data.user.email);
 
     // Test 5: Test refresh token
     console.log('\n5. Testing token refresh...');
